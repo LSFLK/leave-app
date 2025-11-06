@@ -25,7 +25,7 @@ The system includes:
 - **User Web App:** Employees apply for leave, view status, and generate personal leave reports.
 - **Admin Portal:** Administrators view, approve, or reject leave requests and generate organizational reports.
 - **Backend Service (Ballerina):** Handles business logic, database operations, and API communication.
-- **Database:** Stores user info, leave records, and approval statuses.
+- **Database:** leave records, and approval statuses.
 
 **Key Features:**
 
@@ -138,10 +138,7 @@ This is a two-sided client-server application:
 
 #### 3.1.1 User Authentication
 
-- **FR1.1:** Users can login with email & password.
-- **FR1.2:** System verifies credentials during login.
-- **FR1.3:** Uses JWT/session tokens for authentication.
-- **FR1.4:** Passwords are hashed before storing in the database.
+- **FR1.1:** Uses JWT/session tokens for authentication.
 
 #### 3.1.2 Leave Application (User)
 
@@ -160,7 +157,7 @@ This is a two-sided client-server application:
 - **FR3.1:** Admin views all pending leaves in a dashboard.
 - **FR3.2:** Admin can approve or reject any leave request.
 - **FR3.3:** Decision (Approved/Rejected) updates the leave record in the database.
-- **FR3.4:** Status immediately reflects in the user’s mobile app.
+- **FR3.4:** Status immediately reflects in the user’s web app.
 
 #### 3.1.4 Reporting (User)
 
@@ -219,18 +216,10 @@ This is a two-sided client-server application:
 
 #### Tables
 
-**users**
-
-- user_id (PK)
-- name
-- email
-- password_hash
-- role (admin/user)
-
 **leaves**
 
 - leave_id (PK)
-- user_id (FK)
+- user_id
 - leave_type
 - start_date
 - end_date
@@ -268,6 +257,8 @@ This is a two-sided client-server application:
 
 ## 5. Future Enhancements
 
+- User should not be able to add sprevious dates as tart & end date
+- Start date must be before the end date
 - Push notifications for leave approval/rejection.
 - Multi-level approval (Manager → HR → Admin).
 - Integration with email/calendar systems.
