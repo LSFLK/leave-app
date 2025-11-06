@@ -13,9 +13,7 @@ import ballerina/http;
 import ballerina/jwt;
 import ballerina/log;
 
-// Configurable paths for public keys (different for payslip and admin portal)
-configurable string publicKeyPath_microapp = ?; // e.g., "./public.pem" locally, "/public.pem" in Choreo
-configurable string publicKeyPath_adminPortal = ?; // e.g., "./public.pem" locally, "/public.pem" in Choreo
+// Note: Signature validation now relies on platform defaults (no local cert files).
 
 // Extracts the emp_id claim from JWT payload
 public isolated function extractEmployeeId(jwt:Payload payload) returns string|error {
@@ -52,23 +50,17 @@ service class JwtInterceptor {
         // Configure validator based on endpoint type
         jwt:ValidatorConfig validatorConfig = {};
 
-        if fullPath.startsWith("/admin-portal") {
+    if fullPath.startsWith("/admin-portal") {
             log:printInfo("From admin portal endpoints "+fullPath);
             validatorConfig = {
                 issuer: ASGARDEO_ISSUER,
-                audience: ASGARDEO_AUDIENCE,
-                signatureConfig: {
-                    certFile: publicKeyPath_adminPortal
-                }
+        audience: ASGARDEO_AUDIENCE
             };
         } else {
             log:printInfo("From microapp endpoints "+fullPath);
             validatorConfig = {
                 issuer: ASGARDEO_ISSUER,
-                audience: ASGARDEO_AUDIENCE,
-                signatureConfig: {
-                    certFile: publicKeyPath_microapp
-                }
+        audience: ASGARDEO_AUDIENCE
             };
         }  
 
