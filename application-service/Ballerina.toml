@@ -1,8 +1,0 @@
-[package]
-org = "wso2digitaloperationsuser"
-name = "leave_app_application_service"
-version = "2.1.0"
-distribution = "2201.7.2"
-
-[build-options]
-observabilityIncluded = true
