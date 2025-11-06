@@ -35,7 +35,6 @@ Supports JWT-based authentication, CSV upload for bulk payslips, health checks, 
 
 - Ballerina SDK installed ([https://ballerina.io](https://ballerina.io))
 - MySQL database
-- JWT public keys for microapp and admin portal
 - Optional: Docker for containerized deployment
 
 
@@ -45,9 +44,6 @@ Supports JWT-based authentication, CSV upload for bulk payslips, health checks, 
 
 ```toml
 # Root-level configuration
-publicKeyPath_microapp = "./<your-superapp-public-key>.pem"
-publicKeyPath_adminPortal = "./<your-idp-certificate>.crt"
-
 [databaseConfig]
 DB_HOST = "<your-db-host-name>"
 DB_PORT = 3306
@@ -61,7 +57,7 @@ DB_PASSWORD = "<your-db-password>"
 cp config.toml.example config.toml
 ```
 
-3. Update the values with your local database credentials and public keys.
+3. Update the values with your local database credentials.
 
 ## Running Locally
 
