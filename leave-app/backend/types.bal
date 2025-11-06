@@ -7,6 +7,7 @@
 // ==============================
 
 // Core payslip data model
+import ballerinax/mysql;
 public type Payslip record {|
     string employeeId;
     string name;
@@ -20,13 +21,6 @@ public type Payslip record {|
     string? location; // Optional field for future expansion
 |};
 
-public type DatabaseConfig record {
-    string DB_HOST;
-    int DB_PORT;
-    string DB_NAME;
-    string DB_USER;
-    string DB_PASSWORD;
-};
 
 // API Response wrapper types
 public type PayslipResponse record {|
@@ -91,6 +85,40 @@ public type AuthConfig record {|
 //     string[]? notify_people = ();
 //     string? additional_comment = ();
 // |};
+
+
+# [Configurable] Superapp mobile database configs.
+type DatabaseConfig record {|
+    # Database hostname
+    string host;
+    # Database username
+    string user;
+    # Database password
+    string password;
+    # Database name
+    string database;
+    # Database port
+    int port = 3306;
+    # SQL Connection Pool configurations
+    ConnectionPool connectionPool;
+|};
+
+# mysql:Client database config record.
+type SuperappMobileDatabaseConfig record {|
+    *DatabaseConfig;
+    # Additional configurations related to the MySQL database connection
+    mysql:Options? options;
+|};
+
+# mysql:ConnectionPool parameter record with default optimized values 
+type ConnectionPool record {|
+    # The maximum open connections
+    int maxOpenConnections = 10;
+    # The maximum lifetime of a connection in seconds
+    decimal maxConnectionLifeTime = 180;
+    # The minimum idle connections in the pool
+    int minIdleConnections = 5;
+|};
 
 
 

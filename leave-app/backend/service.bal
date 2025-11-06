@@ -155,6 +155,7 @@ service http:InterceptableService / on new http:Listener(serverPort) {
     resource function get api/admin/leaves/pending(http:Caller caller, http:Request req, http:RequestContext ctx) returns error? {
         // Role guard: only admins can access
         string|error userEmail = ctx.getWithType("emp_id");
+        
         if userEmail is error {
             check caller->respond({"status":"error","message":"Unauthorized: missing user","code":403});
             return;
@@ -190,6 +191,7 @@ service http:InterceptableService / on new http:Listener(serverPort) {
     resource function get api/admin/leaves(http:Caller caller, http:Request req, http:RequestContext ctx) returns error? {
         // Role guard: only admins can access
         string|error userEmail = ctx.getWithType("emp_id");
+        //string|error userEmail = "sarah@gov.com";
         if userEmail is error {
             check caller->respond({"status":"error","message":"Unauthorized: missing user","code":403});
             return;

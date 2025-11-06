@@ -5,11 +5,27 @@ import ballerinax/mysql.driver as _; // bundle driver
 // Config values are supplied at runtime
 configurable DatabaseConfig databaseConfig = ?;
 
-// Singleton MySQL client instance (connection pooling enabled)
-final mysql:Client databaseClient = check new(
-    host = databaseConfig.DB_HOST,
-    port = databaseConfig.DB_PORT,
-    user = databaseConfig.DB_USER,
-    password = databaseConfig.DB_PASSWORD,
-    database = databaseConfig.DB_NAME
-);
+// Helper to construct the MySQL client at module init
+isolated function createDatabaseClient() returns mysql:Client|error {
+    mysql:Client db = check new mysql:Client(
+        host = databaseConfig.host,
+        user = databaseConfig.user,
+        password = databaseConfig.password,
+        database = databaseConfig.database,
+        port = databaseConfig.port,
+        options = {
+            ssl: { mode: mysql:SSL_PREFERRED },
+            // Timeout in seconds (decimal as per API)
+            connectTimeout: 10d
+        },
+        // Map our custom ConnectionPool record to the expected shape
+        connectionPool = {
+            maxOpenConnections: databaseConfig.connectionPool.maxOpenConnections,
+            maxConnectionLifeTime: databaseConfig.connectionPool.maxConnectionLifeTime,
+            minIdleConnections: databaseConfig.connectionPool.minIdleConnections
+        }
+    );
+    return db;
+}
+
+final mysql:Client databaseClient = checkpanic createDatabaseClient();
