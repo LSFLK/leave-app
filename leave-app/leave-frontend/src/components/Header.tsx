@@ -41,7 +41,7 @@ const Header: React.FC<HeaderProps> = ({ currentView = 'my-leaves', isAdmin = fa
     let mounted = true;
     (async () => {
       try {
-        const t = await getToken();
+        const t = await getToken(); // returns hardcoded token
         const em = getEmailFromJWT(t) || 'user@example.com';
         if (mounted) setEmail(em);
       } catch {

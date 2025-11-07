@@ -33,24 +33,19 @@ function App() {
   useEffect(() => {
     const fetchMe = async () => {
       try {
-        // Prefer nativebridge token if available, else getToken()
-        let effectiveToken: string | undefined = undefined;
-        if (typeof window.nativebridge?.requestToken === 'function') {
-          try { effectiveToken = await window.nativebridge.requestToken(); } catch {}
-        }
-        if (!effectiveToken) {
-          try { effectiveToken = await getToken(); } catch {}
-        }
+  // Prefer nativebridge token if available
+  let effectiveToken: string | undefined = undefined;
+  try { effectiveToken = await getToken(); } catch {}
         if (!effectiveToken) {
           return; // cannot auth; skip
         }
         setToken(effectiveToken);
-        setbridgeisthere(window.nativebridge !== undefined);
+  setbridgeisthere(typeof window.nativebridge?.requestToken === 'function');
 
         // NOTE: Using standard Authorization header instead of custom x-jwt-assertion
         // to avoid CORS rejection when that custom header is not in Access-Control-Allow-Headers.
         // Backend interceptor currently reads x-jwt-assertion; if not updated, you must revert.
-        const res = await apiFetch('/api/users/me', { headers: { 'Authorization': `Bearer ${effectiveToken}` } });
+  const res = await apiFetch('/api/users/me', { headers: { 'Authorization': `Bearer ${effectiveToken}` } });
         const data = await res.json();
         if (data.status === 'success') setIsAdmin(Boolean(data.data?.isAdmin));
       } catch (e) {

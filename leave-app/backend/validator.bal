@@ -38,7 +38,7 @@ service class JwtInterceptor {
 
     // Default interceptor triggered for all resource function calls
     isolated resource function default [string... path](http:RequestContext ctx, http:Request req)
-        returns http:NextService|http:InternalServerError|error? {
+        returns http:NextService|http:Response|error? {
 
         // Skip validation for public health endpoint
         string fullPath = req.rawPath;
@@ -48,21 +48,18 @@ service class JwtInterceptor {
         }
 
         // Configure validator based on endpoint type
-        jwt:ValidatorConfig validatorConfig = {};
-
-    if fullPath.startsWith("/admin-portal") {
-            log:printInfo("From admin portal endpoints "+fullPath);
-            validatorConfig = {
-                issuer: ASGARDEO_ISSUER,
-        audience: ASGARDEO_AUDIENCE
-            };
+        // Use Asgardeo JWKS for signature verification derived from the issuer URL
+        jwt:ValidatorConfig validatorConfig = {
+            issuer: ASGARDEO_ISSUER,
+            audience: ASGARDEO_AUDIENCE,
+            clockSkew: 60,
+            signatureConfig: { jwksConfig: { url: ASGARDEO_JWKS_URL } }
+        };
+        if fullPath.startsWith("/admin-portal") {
+            log:printInfo("From admin portal endpoints " + fullPath);
         } else {
-            log:printInfo("From microapp endpoints "+fullPath);
-            validatorConfig = {
-                issuer: ASGARDEO_ISSUER,
-        audience: ASGARDEO_AUDIENCE
-            };
-        }  
+            log:printInfo("From microapp endpoints " + fullPath);
+        }
 
 
         // Extract JWT token from request headers: prefer custom header, fallback to Authorization: Bearer
@@ -80,26 +77,23 @@ service class JwtInterceptor {
         }
 
         if idToken is error || idToken.trim().length() == 0 {
-            string errorMsg = "Missing invoker token in headers";
+            string errorMsg = "Missing or empty Authorization token";
             log:printError(errorMsg, idToken is error ? idToken : ());
-            return <http:InternalServerError>{
-                body: {
-                    message: errorMsg
-                }
-            };
+            http:Response resp = new;
+            resp.statusCode = 401;
+            resp.setJsonPayload({ message: errorMsg });
+            return resp;
         }
 
-        // Validate JWT
-        jwt:Payload | jwt:Error payload = jwt:validate(idToken, validatorConfig);
-
-        if (payload is jwt:Error) {
-            string errorMsg = "JWT validation failed! Unauthorized !!!";
+        // Validate JWT (issuer, audience, expiry, signature via JWKS)
+        jwt:Payload|jwt:Error payload = jwt:validate(idToken, validatorConfig);
+        if payload is jwt:Error {
+            string errorMsg = "JWT validation failed";
             log:printError(errorMsg, payload);
-            return <http:InternalServerError>{
-                body: {
-                    message: errorMsg
-                }
-            };
+            http:Response resp = new;
+            resp.statusCode = 401;
+            resp.setJsonPayload({ message: errorMsg });
+            return resp;
         }
 
         // For microapp endpoints, extract employee ID and attach to context
@@ -108,9 +102,10 @@ service class JwtInterceptor {
             string|error empId = extractEmployeeId(payload);
             if empId is error {
                 log:printError("Failed to extract emp_id", empId);
-                return <http:InternalServerError>{
-                    body: { message: "Invalid token: emp_id missing" }
-                };
+                http:Response resp = new;
+                resp.statusCode = 401;
+                resp.setJsonPayload({ message: "Invalid token: emp_id missing" });
+                return resp;
             }
 
             log:printInfo("Authenticated employee ID: " + empId);

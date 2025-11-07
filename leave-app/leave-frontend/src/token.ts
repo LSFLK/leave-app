@@ -1,15 +1,15 @@
-
 export async function getToken() {
   const inHost = typeof window.nativebridge?.requestToken === 'function';
   if (inHost) {
     try {
-      const token = await window.nativebridge.requestToken();
-      //log.info('Token from requestToken():', token);
+      // Type assertion since we checked function existence
+      const token = await (window.nativebridge as any).requestToken();
       return token;
     } catch {
-      // ignore and fall through to other options
+      // ignore and fall through
     }
   }
+  return undefined;
 }
 
 export function getEmailFromJWT(token: string): string | null {
