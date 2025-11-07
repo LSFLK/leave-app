@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Paper, Typography, Stack, TextField, MenuItem, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Divider, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import { getToken } from '../token';
+import { apiFetch, parseJsonSafe } from '../api';
 
 type Leave = {
   leave_id: string;
@@ -56,17 +57,17 @@ const Reports: React.FC<ReportsProps> = ({ isAdmin }) => {
       setLoading(true);
       setError(null);
       try {
-        // Build endpoint based on scope
         const params = new URLSearchParams();
         if (start) params.set('start', start);
         if (end) params.set('end', end);
         if (type) params.set('type', type);
         if (status) params.set('status', status);
         if (scope === 'org' && isAdmin && employee.trim()) params.set('employee', employee.trim());
-  const url = scope === 'org' && isAdmin ? `/api/admin/leaves?${params.toString()}` : `/api/leaves`;
-  const token = await getToken();
-  const res = await fetch(url, { headers: { 'x-jwt-assertion': token } });
-        const data = await res.json();
+        const url = scope === 'org' && isAdmin ? `/api/admin/leaves?${params.toString()}` : `/api/leaves`;
+        const token = await getToken();
+        if (!token) { setError('Missing auth token'); setLoading(false); return; }
+        const res = await apiFetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await parseJsonSafe<any>(res);
         if (data.status === 'success') setRows(data.data || []);
         else setError(data.message || 'Failed to load');
       } catch (e) {

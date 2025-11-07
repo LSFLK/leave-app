@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material';
 import { getToken } from '../token';
+import { apiFetch, parseJsonSafe } from '../api';
 
 interface Leave {
   leave_id: string;
@@ -27,10 +28,11 @@ const PendingLeaves: React.FC<PendingLeavesProps> = ({ showSnackbar }) => {
     setError(null);
     try {
       const token = await getToken();
-      const res = await fetch('/api/admin/leaves/pending', {
-        headers: { 'x-jwt-assertion': token },
+      if (!token) { setError('Missing auth token'); setLoading(false); return; }
+      const res = await apiFetch('/api/admin/leaves/pending', {
+        headers: { 'Authorization': `Bearer ${token}` },
       });
-      const data = await res.json();
+      const data = await parseJsonSafe<any>(res);
       if (data.status === 'success') {
         setRows(data.data || []);
       } else {
@@ -49,12 +51,13 @@ const PendingLeaves: React.FC<PendingLeavesProps> = ({ showSnackbar }) => {
   const act = async (leave_id: string, action: 'approve'|'reject') => {
     try {
       const token = await getToken();
-      const res = await fetch(`/api/admin/leaves/${action}`, {
+      if (!token) { showSnackbar?.('Missing auth token', 'error'); return; }
+      const res = await apiFetch(`/api/admin/leaves/${action}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-jwt-assertion': token },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ leave_id }),
       });
-      const data = await res.json();
+      const data = await parseJsonSafe<any>(res);
       if (data.status === 'success') {
         showSnackbar?.(data.message, 'success');
         setRows(prev => prev.filter(r => r.leave_id !== leave_id));

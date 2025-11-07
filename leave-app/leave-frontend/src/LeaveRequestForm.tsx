@@ -1,5 +1,6 @@
- import React, { useState } from 'react';
+import React, { useState } from 'react';
  import { getToken } from './token';
+ import { apiFetch, parseJsonSafe } from './api';
 
 interface LeavePayload {
   leave_id: string;
@@ -88,17 +89,21 @@ const LeaveRequestForm: React.FC<LeaveRequestFormProps> = ({ showSnackbar }) => 
       return;
     }
     const leave_id = generateUUID();
-  // Get employeeId from JWT token (email)
-  const token = await getToken();
-  const employeeId = getEmailFromJWT(token) || '';
+    // Get employeeId from JWT token (email)
+    const token = await getToken();
+    if (!token) {
+      setError('Missing auth token');
+      return;
+    }
+    const employeeId = getEmailFromJWT(token) || '';
     try {
       const payload = { ...form, leave_id, status: 'pending', user_id: employeeId };
-    const res = await fetch('/leaves', {
+      const res = await apiFetch('/api/leaves', {
         method: 'POST',
-  headers: { 'Content-Type': 'application/json', 'x-jwt-assertion': token },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
+      const data = await parseJsonSafe<any>(res);
       if (data.status === 'success') {
         setStatus(data.message);
         if (showSnackbar) showSnackbar(data.message, 'success');
