@@ -1,4 +1,5 @@
 import { getToken } from './token';
+import { apiFetch, parseJsonSafe } from './api';
 import React, { useState } from 'react';
 
 interface Leave {
@@ -105,29 +106,40 @@ const LeaveList: React.FC<LeaveListProps> = ({ showSnackbar, isAdmin = false }) 
       setLoading(true);
       setError(null);
       try {
-        // Always fetch leaves by user_id only, never send status
         if (!userEmail) {
           setError('User email not found in JWT');
           setLoading(false);
           return;
         }
         const url = `/api/leaves?user_id=${encodeURIComponent(userEmail)}`;
-        const res = await fetch(url, {
+        const token = jwtToken;
+        if (!token) {
+          setError('Auth token missing');
+          setLoading(false);
+          return;
+        }
+        const res = await apiFetch(url, {
           method: 'GET',
-          headers: {
-            'x-jwt-assertion': jwtToken,
-          },
+          headers: { 'Authorization': `Bearer ${token}` },
         });
-        const data = await res.json();
+        const data = await parseJsonSafe<any>(res);
         if (data.status === 'success') {
           setLeaves(data.data);
         } else {
           setError(data.message || 'Failed to fetch leaves');
           if (showSnackbar) showSnackbar(data.message || 'Failed to fetch leaves', 'error');
         }
-      } catch (err) {
-        setError('Network error');
-        if (showSnackbar) showSnackbar('Network error', 'error');
+      } catch (err: any) {
+        const msgParts: string[] = [];
+        if (err) {
+          if (typeof err.message === 'string' && err.message) msgParts.push(err.message);
+          if (err.timeout) msgParts.push('(timeout)');
+          else if (err.network) msgParts.push('(network)');
+        }
+        const friendly = msgParts.length ? msgParts.join(' ') : 'Network error';
+        setError(friendly);
+        if (showSnackbar) showSnackbar(friendly, 'error');
+        console.error('Fetch leaves failed', err);
       }
       setLoading(false);
     };

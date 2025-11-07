@@ -1,4 +1,13 @@
 # React + TypeScript + Vite
+# Configure backend base URL
+
+Set the base API URL for production builds via Vite env:
+
+1) Copy `.env.example` to `.env` and set VITE_API_BASE to your deployed backend URL (no trailing slash):
+
+VITE_API_BASE="https://41200aa1-4106-4e6c-babf-311dce37c04a-prod.e1-us-east-azure.choreoapis.dev/lsf-leave-app/backend/v1.0"
+
+2) During local dev, leave it empty and the app will use the Vite dev proxy to `http://localhost:9090` for paths starting with `/api`.
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

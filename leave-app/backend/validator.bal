@@ -65,12 +65,23 @@ service class JwtInterceptor {
         }  
 
 
-        // Extract JWT token from request header
+        // Extract JWT token from request headers: prefer custom header, fallback to Authorization: Bearer
         string|error idToken = req.getHeader(JWT_ASSERTION_HEADER);
-
         if idToken is error {
-            string errorMsg = "Missing invoker info header!";
-            log:printError(errorMsg, idToken);
+            string|error authHeader = req.getHeader(AUTHORIZATION_HEADER);
+            if authHeader is string {
+                string trimmed = authHeader.trim();
+                if trimmed.toLowerAscii().startsWith("bearer ") {
+                    idToken = trimmed.substring(7);
+                } else {
+                    idToken = trimmed; // accept raw token if Bearer not used
+                }
+            }
+        }
+
+        if idToken is error || idToken.trim().length() == 0 {
+            string errorMsg = "Missing invoker token in headers";
+            log:printError(errorMsg, idToken is error ? idToken : ());
             return <http:InternalServerError>{
                 body: {
                     message: errorMsg
