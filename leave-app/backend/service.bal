@@ -32,6 +32,13 @@ public type LeavePayload record {|
 
 // Minimal payload type for approve/reject
 type LeaveIdOnly record {| string leave_id; |};
+// Payload for editing a leave
+type LeaveUpdatePayload record {| 
+    string leave_type;
+    string start_date;
+    string end_date;
+    string? reason = ();
+|};
 
 configurable int serverPort = 9090;
 
@@ -571,6 +578,41 @@ service http:InterceptableService / on new http:Listener(serverPort) {
             return;
         }
         check caller->respond({"status":"success","message":"Leave deleted","leave_id":leaveId});
+    }
+    // PUT /api/leaves/{leaveId} - Update leave fields (type, dates, reason)
+    resource function put api/leaves/[string leaveId](http:Caller caller, http:Request req, http:RequestContext ctx) returns error? {
+        string|error userEmail = ctx.getWithType("email");
+        if userEmail is error {
+            check caller->respond({"status":"error","message":"Unauthorized"});
+            return;
+        }
+        var row = fetchUserByEmail(userEmail);
+        boolean isAdmin = false;
+        if row is record {| string email; string user_role; |} {
+            isAdmin = row.user_role.toLowerAscii() == "admin";
+        }
+        json|error payloadJson = req.getJsonPayload();
+        if payloadJson is error {
+            check caller->respond({"status":"error","message":"Invalid JSON payload"});
+            return;
+        }
+        LeaveUpdatePayload|error upd = payloadJson.cloneWithType(LeaveUpdatePayload);
+        if upd is error {
+            check caller->respond({"status":"error","message":"Invalid payload structure"});
+            return;
+        }
+        string leaveType = upd.leave_type;
+        string startDate = upd.start_date;
+        string endDate = upd.end_date;
+        string reason = upd.reason ?: "";
+        error? upRes = isAdmin
+            ? adminUpdateLeaveDB(leaveId, leaveType, startDate, endDate, reason)
+            : updateLeaveDB(leaveId, userEmail, leaveType, startDate, endDate, reason);
+        if upRes is error {
+            check caller->respond({"status":"error","message":"Failed to update leave","error":upRes.toString()});
+            return;
+        }
+        check caller->respond({"status":"success","message":"Leave updated","leave_id":leaveId});
     }
     }
 function fetchLeavesByUser(string userId) returns LeavePayload[]|error {

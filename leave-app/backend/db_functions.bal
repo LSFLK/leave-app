@@ -303,6 +303,30 @@ public isolated function adminDeleteLeaveDB(string leaveId) returns error? {
     _ = check databaseClient->execute(pq);
 }
 
+    // Update editable fields of a leave (owned by the user)
+    public isolated function updateLeaveDB(string leaveId, string userId,
+            string leaveType, string startDate, string endDate, string reason) returns error? {
+        sql:ParameterizedQuery pq = `UPDATE leaves SET 
+                leave_type = ${leaveType},
+                start_date = ${startDate},
+                end_date = ${endDate},
+                reason = ${reason}
+            WHERE leave_id = ${leaveId} AND user_id = ${userId}`;
+        _ = check databaseClient->execute(pq);
+    }
+
+    // Admin can update any leave
+    public isolated function adminUpdateLeaveDB(string leaveId,
+            string leaveType, string startDate, string endDate, string reason) returns error? {
+        sql:ParameterizedQuery pq = `UPDATE leaves SET 
+                leave_type = ${leaveType},
+                start_date = ${startDate},
+                end_date = ${endDate},
+                reason = ${reason}
+            WHERE leave_id = ${leaveId}`;
+        _ = check databaseClient->execute(pq);
+    }
+
 // Fetch all leaves filtered by status (for admin dashboard)
 public isolated function fetchLeavesByStatusDB(string status)
         returns record {| 

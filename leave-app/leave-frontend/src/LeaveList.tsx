@@ -45,6 +45,10 @@ const LeaveList: React.FC<LeaveListProps> = ({ showSnackbar, isAdmin = false }) 
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<Record<string, boolean>>({});
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<{ leave_type: string; start_date: string; end_date: string; reason: string }>({
+    leave_type: '', start_date: '', end_date: '', reason: ''
+  });
 
   // Filtered leaves
   const filteredLeaves = leaves.filter(leave => {
@@ -87,6 +91,51 @@ const LeaveList: React.FC<LeaveListProps> = ({ showSnackbar, isAdmin = false }) 
       showSnackbar && showSnackbar(e?.message || 'Network error', 'error');
     }
     setDeleting(d => ({ ...d, [leaveId]: false }));
+  }
+
+  function startEdit(leave: Leave) {
+    setEditingId(leave.leave_id);
+    setEditForm({
+      leave_type: leave.leave_type,
+      start_date: leave.start_date,
+      end_date: leave.end_date,
+      reason: leave.reason || ''
+    });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+  }
+
+  async function saveEdit(leaveId: string) {
+    // basic validation
+    if (!editForm.leave_type || !editForm.start_date || !editForm.end_date) {
+      showSnackbar && showSnackbar('Type, Start and End are required', 'error');
+      return;
+    }
+    if (editForm.end_date < editForm.start_date) {
+      showSnackbar && showSnackbar('End date cannot be before start date', 'error');
+      return;
+    }
+    try {
+      const token = jwtToken;
+      if (!token) throw new Error('Missing auth token');
+      const res = await apiFetch(`/api/leaves/${encodeURIComponent(leaveId)}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      const data = await parseJsonSafe<any>(res);
+      if (data.status === 'success') {
+        setLeaves(ls => ls.map(l => l.leave_id === leaveId ? { ...l, ...editForm } as Leave : l));
+        setEditingId(null);
+        showSnackbar && showSnackbar('Leave updated', 'success');
+      } else {
+        showSnackbar && showSnackbar(data.message || 'Update failed', 'error');
+      }
+    } catch (e: any) {
+      showSnackbar && showSnackbar(e?.message || 'Network error', 'error');
+    }
   }
 
 
@@ -257,34 +306,106 @@ const LeaveList: React.FC<LeaveListProps> = ({ showSnackbar, isAdmin = false }) 
             </tr>
           </thead>
           <tbody>
-            {filteredLeaves.map(leave => (
-              <tr key={leave.leave_id}>
-                <td style={{ padding: '10px 8px', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>{leave.leave_type}</td>
-                <td style={{ padding: '10px 8px', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>{leave.status}</td>
-                <td style={{ padding: '10px 8px', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>{leave.start_date}</td>
-                <td style={{ padding: '10px 8px', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>{leave.end_date}</td>
-                <td className="reason-cell" style={{ padding: '10px 8px', borderBottom: '1px solid rgba(0,0,0,0.1)', maxWidth: 320 }}>{leave.reason}</td>
-                <td style={{ padding: '10px 8px', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
-                  <button
-                    onClick={() => handleDelete(leave.leave_id)}
-                    disabled={deleting[leave.leave_id]}
-                    style={{
-                      padding: '6px 10px',
-                      borderRadius: 6,
-                      background: deleting[leave.leave_id] ? '#999' : '#d32f2f',
-                      color: '#fff',
-                      border: 'none',
-                      cursor: deleting[leave.leave_id] ? 'not-allowed' : 'pointer',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      letterSpacing: 0.4,
-                    }}
-                  >
-                    {deleting[leave.leave_id] ? 'Deleting...' : 'Delete'}
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {filteredLeaves.map(leave => {
+              const isEditing = editingId === leave.leave_id;
+              return (
+                <tr key={leave.leave_id}>
+                  <td style={{ padding: '10px 8px', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editForm.leave_type}
+                        onChange={e => setEditForm(f => ({ ...f, leave_type: e.target.value }))}
+                        style={{ padding: 6, borderRadius: 6, border: '1px solid rgba(0,0,0,0.2)', width: 140, background: 'inherit', color: 'inherit' }}
+                      />
+                    ) : (
+                      leave.leave_type
+                    )}
+                  </td>
+                  <td style={{ padding: '10px 8px', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>{leave.status}</td>
+                  <td style={{ padding: '10px 8px', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
+                    {isEditing ? (
+                      <input
+                        type="date"
+                        value={editForm.start_date}
+                        onChange={e => setEditForm(f => ({ ...f, start_date: e.target.value }))}
+                        style={{ padding: 6, borderRadius: 6, border: '1px solid rgba(0,0,0,0.2)', width: 160, background: 'inherit', color: 'inherit' }}
+                      />
+                    ) : (
+                      leave.start_date
+                    )}
+                  </td>
+                  <td style={{ padding: '10px 8px', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
+                    {isEditing ? (
+                      <input
+                        type="date"
+                        value={editForm.end_date}
+                        onChange={e => setEditForm(f => ({ ...f, end_date: e.target.value }))}
+                        style={{ padding: 6, borderRadius: 6, border: '1px solid rgba(0,0,0,0.2)', width: 160, background: 'inherit', color: 'inherit' }}
+                      />
+                    ) : (
+                      leave.end_date
+                    )}
+                  </td>
+                  <td className="reason-cell" style={{ padding: '10px 8px', borderBottom: '1px solid rgba(0,0,0,0.1)', maxWidth: 320 }}>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editForm.reason}
+                        onChange={e => setEditForm(f => ({ ...f, reason: e.target.value }))}
+                        style={{ padding: 6, borderRadius: 6, border: '1px solid rgba(0,0,0,0.2)', width: 280, background: 'inherit', color: 'inherit' }}
+                      />
+                    ) : (
+                      leave.reason
+                    )}
+                  </td>
+                  <td style={{ padding: '10px 8px', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
+                    {isEditing ? (
+                      <>
+                        <button
+                          onClick={() => saveEdit(leave.leave_id)}
+                          style={{ padding: '6px 10px', borderRadius: 6, background: '#1976d2', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, marginRight: 8 }}
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          style={{ padding: '6px 10px', borderRadius: 6, background: '#777', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => startEdit(leave)}
+                          style={{ padding: '6px 10px', borderRadius: 6, background: '#0288d1', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, marginRight: 8 }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(leave.leave_id)}
+                          disabled={deleting[leave.leave_id]}
+                          style={{
+                            padding: '6px 10px',
+                            borderRadius: 6,
+                            background: deleting[leave.leave_id] ? '#999' : '#d32f2f',
+                            color: '#fff',
+                            border: 'none',
+                            cursor: deleting[leave.leave_id] ? 'not-allowed' : 'pointer',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            letterSpacing: 0.4,
+                          }}
+                        >
+                          {deleting[leave.leave_id] ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         </div>
