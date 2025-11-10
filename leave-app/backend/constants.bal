@@ -5,6 +5,6 @@ public const ASGARDEO_ISSUER = "https://api.asgardeo.io/t/lsfproject/oauth2/toke
 public const ASGARDEO_AUDIENCE = "aVro3ATf5ZSglZHItEDj0Kd7M4wa";
 public const ASGARDEO_JWKS_URL = "https://api.asgardeo.io/t/lsfproject/oauth2/jwks";
 public const MICROAPP_ISSUER = "superapp-issuer";   
-public const MICROAPP_AUDIENCE = "payslip-viewer";
+public const MICROAPP_AUDIENCE = "leave-app";
 public const MICROAPP_JWKS_URL = "https://superapp-issuer/.well-known/jwks.json";
 
