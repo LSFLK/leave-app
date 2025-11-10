@@ -118,11 +118,12 @@ const LeaveRequestForm: React.FC<LeaveRequestFormProps> = ({ showSnackbar }) => 
   };
 
   return (
-  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', minHeight: 'auto', padding: '16px' }}>
       <form
         onSubmit={handleSubmit}
         style={{
-          width: 400,
+          width: '100%',
+          maxWidth: 480,
           background: 'inherit',
           padding: '2rem',
           borderRadius: 16,
@@ -157,7 +158,7 @@ const LeaveRequestForm: React.FC<LeaveRequestFormProps> = ({ showSnackbar }) => 
           {errors.leave_type && <small style={{ color: '#e74c3c' }}>{errors.leave_type}</small>}
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem' }}>
+  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label htmlFor="start_date" style={{ fontWeight: 500 }}>Start Date</label>
             <input

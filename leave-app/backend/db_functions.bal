@@ -291,6 +291,18 @@ public isolated function fetchAllLeavesDB()
         _ = check databaseClient->execute(pq);
     }
 
+// Delete a leave for a specific user (ensures user owns the leave)
+public isolated function deleteLeaveDB(string leaveId, string userId) returns error? {
+    sql:ParameterizedQuery pq = `DELETE FROM leaves WHERE leave_id = ${leaveId} AND user_id = ${userId}`;
+    _ = check databaseClient->execute(pq);
+}
+
+// Admin delete (no user restriction)
+public isolated function adminDeleteLeaveDB(string leaveId) returns error? {
+    sql:ParameterizedQuery pq = `DELETE FROM leaves WHERE leave_id = ${leaveId}`;
+    _ = check databaseClient->execute(pq);
+}
+
 // Fetch all leaves filtered by status (for admin dashboard)
 public isolated function fetchLeavesByStatusDB(string status)
         returns record {| 

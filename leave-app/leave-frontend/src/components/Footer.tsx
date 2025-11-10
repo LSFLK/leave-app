@@ -14,10 +14,10 @@ const Footer: React.FC = () => (
       textAlign: 'center',
       fontSize: '1rem',
       fontWeight: 500,
-      position: 'fixed',
-      left: 0,
-      bottom: 0,
-      zIndex: 100,
+      position: { xs: 'static', sm: 'fixed' },
+      left: { sm: 0 },
+      bottom: { sm: 0 },
+      zIndex: { sm: 100 },
     }}
   >
     <Typography variant="body1">

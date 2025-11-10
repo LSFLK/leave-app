@@ -1,5 +1,7 @@
 import React from 'react';
-import { Box, Paper, Typography, Stack, TextField, MenuItem, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Divider, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import { Box, Paper, Typography, Stack, TextField, MenuItem, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Divider, ToggleButtonGroup, ToggleButton, Tooltip } from '@mui/material';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import { getToken } from '../token';
 import { apiFetch, parseJsonSafe } from '../api';
 
@@ -29,6 +31,8 @@ type StatusFilter = typeof statusOptions[number];
 
 type ReportsProps = { isAdmin?: boolean };
 const Reports: React.FC<ReportsProps> = ({ isAdmin }) => {
+  const theme = useTheme();
+  const isXs = useMediaQuery(theme.breakpoints.down('sm'));
   const [rows, setRows] = React.useState<Leave[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -272,11 +276,11 @@ const Reports: React.FC<ReportsProps> = ({ isAdmin }) => {
   }
 
   return (
-    <Box p={3}>
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Typography variant="h6" mb={2}>Leave Reports</Typography>
 
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
+      <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 2 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }} flexWrap={{ sm: 'wrap' }} useFlexGap>
           {isAdmin && (
             <ToggleButtonGroup size="small" exclusive value={scope} onChange={(_, v) => v && setScope(v)}>
               <ToggleButton value="me">My history</ToggleButton>
@@ -295,7 +299,7 @@ const Reports: React.FC<ReportsProps> = ({ isAdmin }) => {
             InputLabelProps={{ shrink: true }}
             value={start}
             onChange={e => setStart(e.target.value)}
-            sx={{ minWidth: 180 }}
+            sx={{ minWidth: { xs: '100%', sm: 180 }, flex: { xs: '1 1 100%', sm: '0 0 auto' } }}
           />
           <TextField
             type="date"
@@ -304,24 +308,24 @@ const Reports: React.FC<ReportsProps> = ({ isAdmin }) => {
             value={end}
             onChange={e => setEnd(e.target.value)}
             inputProps={{ min: start || undefined }}
-            sx={{ minWidth: 180 }}
+            sx={{ minWidth: { xs: '100%', sm: 180 }, flex: { xs: '1 1 100%', sm: '0 0 auto' } }}
           />
-          <TextField select label="Type" value={type} onChange={e => setType(e.target.value as TypeFilter)} sx={{ minWidth: 160 }}>
+          <TextField select label="Type" value={type} onChange={e => setType(e.target.value as TypeFilter)} sx={{ minWidth: { xs: '100%', sm: 160 }, flex: { xs: '1 1 100%', sm: '0 0 auto' } }}>
             {typeOptions.map(opt => (
               <MenuItem key={opt} value={opt}>{opt === 'all' ? 'All Types' : opt[0].toUpperCase() + opt.slice(1)}</MenuItem>
             ))}
           </TextField>
-          <TextField select label="Status" value={status} onChange={e => setStatus(e.target.value as StatusFilter)} sx={{ minWidth: 160 }}>
+          <TextField select label="Status" value={status} onChange={e => setStatus(e.target.value as StatusFilter)} sx={{ minWidth: { xs: '100%', sm: 160 }, flex: { xs: '1 1 100%', sm: '0 0 auto' } }}>
             {statusOptions.map(opt => (
               <MenuItem key={opt} value={opt}>{opt === 'all' ? 'All Statuses' : opt[0].toUpperCase() + opt.slice(1)}</MenuItem>
             ))}
           </TextField>
           {isAdmin && scope === 'org' && (
-            <TextField label="Employee (email)" value={employee} onChange={e => setEmployee(e.target.value)} placeholder="user@company.com" sx={{ minWidth: 220 }} />
+            <TextField label="Employee (email)" value={employee} onChange={e => setEmployee(e.target.value)} placeholder="user@company.com" sx={{ minWidth: { xs: '100%', sm: 220 }, flex: { xs: '1 1 100%', sm: '0 0 auto' } }} />
           )}
         </Stack>
-        <Divider sx={{ my: 2 }} />
-    <Typography variant="body2" color="text.secondary">Allowances — Annual: {allowAnnual}, Sick: {allowSick}, Casual: {allowCasual}</Typography>
+  <Divider sx={{ mt: 1, mb: 1 }} />
+  <Typography variant="body2" color="text.secondary" sx={{ mt: 0 }}>Allowances — Annual: {allowAnnual}, Sick: {allowSick}, Casual: {allowCasual}</Typography>
       </Paper>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} mb={2}>
@@ -333,8 +337,8 @@ const Reports: React.FC<ReportsProps> = ({ isAdmin }) => {
       {error && <div style={{ color: 'red' }}>{error}</div>}
 
       {!loading && mode === 'rows' && (
-        <TableContainer component={Paper}>
-          <Table size="small">
+        <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto' }}>
+          <Table size="small" stickyHeader={isXs} sx={{ minWidth: 760 }}>
             <TableHead>
               <TableRow>
                 {isAdmin && scope === 'org' && <TableCell>Employee</TableCell>}
@@ -343,7 +347,7 @@ const Reports: React.FC<ReportsProps> = ({ isAdmin }) => {
                 <TableCell>End</TableCell>
                 <TableCell>Days</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Reason</TableCell>
+                {!isXs && <TableCell>Reason</TableCell>}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -355,7 +359,15 @@ const Reports: React.FC<ReportsProps> = ({ isAdmin }) => {
                   <TableCell>{r.end_date}</TableCell>
                   <TableCell>{daysBetweenInclusive(r.start_date, r.end_date)}</TableCell>
                   <TableCell>{r.status}</TableCell>
-                  <TableCell>{r.reason}</TableCell>
+                  {!isXs && (
+                    <TableCell sx={{ maxWidth: 280 }}>
+                      <Tooltip title={r.reason || ''} placement="top-start" disableInteractive>
+                        <span style={{ display: 'inline-block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {r.reason}
+                        </span>
+                      </Tooltip>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
@@ -364,8 +376,8 @@ const Reports: React.FC<ReportsProps> = ({ isAdmin }) => {
       )}
 
       {!loading && isAdmin && scope === 'org' && mode === 'employee-summary' && (
-        <TableContainer component={Paper}>
-          <Table size="small">
+        <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto' }}>
+          <Table size="small" stickyHeader={isXs} sx={{ minWidth: 760 }}>
             <TableHead>
               <TableRow>
                 <TableCell>Employee</TableCell>
@@ -398,10 +410,10 @@ const Reports: React.FC<ReportsProps> = ({ isAdmin }) => {
         </TableContainer>
       )}
 
-      <Paper sx={{ p: 2, mt: 2 }}>
+      <Paper sx={{ p: { xs: 1.5, sm: 2 }, mt: 2 }}>
         <Typography variant="subtitle1" fontWeight={600}>Summary</Typography>
-        <Typography>Total Days Taken (filtered): {totalDays}</Typography>
-        <Typography>Remaining — Annual: {remainingByType.annual ?? 0}, Sick: {remainingByType.sick ?? 0}, Casual: {remainingByType.casual ?? 0}</Typography>
+        <Typography variant="body2">Total Days Taken (filtered): {totalDays}</Typography>
+        <Typography variant="body2">Remaining — Annual: {remainingByType.annual ?? 0}, Sick: {remainingByType.sick ?? 0}, Casual: {remainingByType.casual ?? 0}</Typography>
       </Paper>
     </Box>
   );

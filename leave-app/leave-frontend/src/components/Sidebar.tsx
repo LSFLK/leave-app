@@ -11,16 +11,21 @@ interface SidebarProps {
   isAdmin?: boolean;
   currentView: string;
   onSelect: (view: string) => void;
+  mobile?: boolean; // when true, use temporary drawer
+  onClose?: () => void; // for temporary drawer
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ open, width = 240, isAdmin, currentView, onSelect }) => {
+const Sidebar: React.FC<SidebarProps> = ({ open, width = 240, isAdmin, currentView, onSelect, mobile = false, onClose }) => {
   return (
     <Drawer
-      variant="permanent"
+      variant={mobile ? 'temporary' : 'permanent'}
       open={open}
+      onClose={mobile ? onClose : undefined}
+      ModalProps={{ keepMounted: true }}
       sx={{
-        width,
+        width: mobile ? undefined : width,
         flexShrink: 0,
+        display: { xs: 'block', sm: 'block' },
         [`& .MuiDrawer-paper`]: {
           width,
           boxSizing: 'border-box',

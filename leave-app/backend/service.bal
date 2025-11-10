@@ -551,6 +551,27 @@ service http:InterceptableService / on new http:Listener(serverPort) {
             "data": leavesArr
         });
     }
+    // DELETE /api/leaves/{leaveId} - Delete a leave owned by the user (or any if admin)
+    resource function delete api/leaves/[string leaveId](http:Caller caller, http:Request req, http:RequestContext ctx) returns error? {
+        string|error userEmail = ctx.getWithType("email");
+        if userEmail is error {
+            check caller->respond({"status":"error","message":"Unauthorized"});
+            return;
+        }
+        // Determine role
+        var row = fetchUserByEmail(userEmail);
+        boolean isAdmin = false;
+        if row is record {| string email; string user_role; |} {
+            isAdmin = row.user_role.toLowerAscii() == "admin";
+        }
+        // Attempt deletion
+        error? delResult = isAdmin ? adminDeleteLeaveDB(leaveId) : deleteLeaveDB(leaveId, userEmail);
+        if delResult is error {
+            check caller->respond({"status":"error","message":"Failed to delete leave","error":delResult.toString()});
+            return;
+        }
+        check caller->respond({"status":"success","message":"Leave deleted","leave_id":leaveId});
+    }
     }
 function fetchLeavesByUser(string userId) returns LeavePayload[]|error {
     // Use status = "%%" to fetch all statuses (or modify db_functions to allow status to be optional)

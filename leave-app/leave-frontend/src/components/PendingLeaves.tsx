@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material';
+import { Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, Card, CardContent, Stack, Divider } from '@mui/material';
+import { useTheme, useMediaQuery } from '@mui/material';
 import { getToken } from '../token';
 import { apiFetch, parseJsonSafe } from '../api';
 
@@ -69,58 +70,101 @@ const PendingLeaves: React.FC<PendingLeavesProps> = ({ showSnackbar }) => {
     }
   };
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  const MobileView = () => (
+    <Stack spacing={2}>
+      {rows.map(r => (
+        <Card key={r.leave_id} variant="outlined" sx={{ borderColor: 'divider' }}>
+          <CardContent>
+            <Stack spacing={1}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="subtitle1" fontWeight={600}>{r.leave_type}</Typography>
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    size="small"
+                    color="success"
+                    variant="contained"
+                    onClick={() => act(r.leave_id, 'approve')}
+                  >Approve</Button>
+                  <Button
+                    size="small"
+                    color="error"
+                    variant="contained"
+                    onClick={() => act(r.leave_id, 'reject')}
+                  >Reject</Button>
+                </Stack>
+              </Stack>
+              <Divider />
+              <Typography variant="body2"><strong>User:</strong> {r.user_id}</Typography>
+              <Typography variant="body2"><strong>Dates:</strong> {r.start_date} → {r.end_date}</Typography>
+              {r.reason && <Typography variant="body2" color="text.secondary">{r.reason}</Typography>}
+            </Stack>
+          </CardContent>
+        </Card>
+      ))}
+    </Stack>
+  );
+
   return (
     <Box p={3}>
-  <Typography variant="h6" mb={2}>Pending Leave Requests</Typography>
+      <Typography variant="h6" mb={2}>Pending Leave Requests</Typography>
       {loading && <div>Loading...</div>}
       {error && <div style={{ color: 'red' }}>{error}</div>}
       {!loading && rows.length === 0 && <div>No pending leaves.</div>}
       {!loading && rows.length > 0 && (
-        <TableContainer component={Paper}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>User</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Start</TableCell>
-                <TableCell>End</TableCell>
-                <TableCell>Reason</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.map(r => (
-                <TableRow key={r.leave_id}>
-                  <TableCell>{r.user_id}</TableCell>
-                  <TableCell>{r.leave_type}</TableCell>
-                  <TableCell>{r.start_date}</TableCell>
-                  <TableCell>{r.end_date}</TableCell>
-                  <TableCell>{r.reason}</TableCell>
-                  <TableCell>
-                    <Button
-                      size="small"
-                      color="success"
-                      variant="outlined"
-                      onClick={() => act(r.leave_id, 'approve')}
-                      sx={{ bgcolor: 'success.main', color: 'success.contrastText', '&:hover': { bgcolor: 'success.dark' } }}
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      size="small"
-                      color="error"
-                      variant="outlined"
-                      sx={{ ml: 1, bgcolor: 'error.main', color: 'error.contrastText', '&:hover': { bgcolor: 'error.dark' } }}
-                      onClick={() => act(r.leave_id, 'reject')}
-                    >
-                      Reject
-                    </Button>
-                  </TableCell>
+        isMobile ? (
+          <MobileView />
+        ) : (
+          <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto' }}>
+            <Table size="small" sx={{ minWidth: 700 }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell>User</TableCell>
+                  <TableCell>Type</TableCell>
+                  <TableCell>Start</TableCell>
+                  <TableCell>End</TableCell>
+                  <TableCell>Reason</TableCell>
+                  <TableCell>Actions</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {rows.map(r => (
+                  <TableRow key={r.leave_id}>
+                    <TableCell>{r.user_id}</TableCell>
+                    <TableCell>{r.leave_type}</TableCell>
+                    <TableCell>{r.start_date}</TableCell>
+                    <TableCell>{r.end_date}</TableCell>
+                    <TableCell sx={{ maxWidth: 240 }}>
+                      <Typography variant="body2" noWrap title={r.reason}>{r.reason}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="small"
+                        color="success"
+                        variant="outlined"
+                        onClick={() => act(r.leave_id, 'approve')}
+                        sx={{ bgcolor: 'success.main', color: 'success.contrastText', '&:hover': { bgcolor: 'success.dark' } }}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        size="small"
+                        color="error"
+                        variant="outlined"
+                        sx={{ ml: 1, bgcolor: 'error.main', color: 'error.contrastText', '&:hover': { bgcolor: 'error.dark' } }}
+                        onClick={() => act(r.leave_id, 'reject')}
+                      >
+                        Reject
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )
       )}
     </Box>
   );
