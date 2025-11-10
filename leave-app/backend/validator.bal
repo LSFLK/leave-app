@@ -12,6 +12,7 @@
 import ballerina/http;
 import ballerina/jwt;
 import ballerina/log;
+import ballerina/jwt;
 
 // Extracts the emp_id claim from JWT payload
 public isolated function extractEmployeeId(jwt:Payload payload) returns string|error {
@@ -40,23 +41,14 @@ service class JwtInterceptor {
 
         // Build validator config dynamically per endpoint group using JWKS
         jwt:ValidatorConfig validatorConfig = {};
-        if fullPath.startsWith("/admin-portal") {
-            log:printInfo("From admin portal endpoints " + fullPath);
-            validatorConfig = {
-                issuer: ASGARDEO_ISSUER,
-                audience: ASGARDEO_AUDIENCE,
-                clockSkew: 60,
-                signatureConfig: { jwksConfig: { url: ASGARDEO_JWKS_URL } }
-            };
-        } else {
             log:printInfo("From microapp endpoints " + fullPath);
             validatorConfig = {
                 issuer: MICROAPP_ISSUER,
-                audience: MICROAPP_AUDIENCE,
+                audience: "3c902ec06f25026af435afc5380cbec3903256a1daf8cfc22db0997bff8c0f15",
                 clockSkew: 60,
                 signatureConfig: { jwksConfig: { url: MICROAPP_JWKS_URL } }
             };
-        }
+        
 
         // Obtain token from custom header first; fallback to Authorization bearer
         string|error idToken = req.getHeader(JWT_ASSERTION_HEADER);
@@ -83,16 +75,6 @@ service class JwtInterceptor {
             string errorMsg = "JWT validation failed! Unauthorized !!!";
             log:printError(errorMsg, payload);
             return <http:InternalServerError>{ body: { message: errorMsg } };
-        }
-
-        if !fullPath.startsWith("/admin-portal") {
-            string|error empId = extractEmployeeId(payload);
-            if empId is error {
-                log:printError("Failed to extract emp_id", empId);
-                return <http:InternalServerError>{ body: { message: "Invalid token: emp_id missing" } };
-            }
-            log:printInfo("Authenticated employee ID: " + empId);
-            ctx.set("emp_id", empId);
         }
         return ctx.next();
     }
