@@ -44,7 +44,7 @@ service class JwtInterceptor {
             log:printInfo("From microapp endpoints " + fullPath);
             validatorConfig = {
                 issuer: MICROAPP_ISSUER,
-                audience: "3c902ec06f25026af435afc5380cbec3903256a1daf8cfc22db0997bff8c0f15",
+                audience: "XtbUBfXj9aLNe3aR0MP7VqKN9utHWg7fgYfxx8VfC6U=",
                 clockSkew: 60,
                 signatureConfig: { jwksConfig: { url: MICROAPP_JWKS_URL } }
             };
