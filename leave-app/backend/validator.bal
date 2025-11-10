@@ -14,16 +14,20 @@ import ballerina/jwt;
 import ballerina/log;
 
 
-// Extracts the emp_id claim from JWT payload
-public isolated function extractEmployeeId(jwt:Payload payload) returns string|error {
-    anydata|error empClaim = payload["emp_id"] ?: payload["email"];
-    if empClaim is error {
-        return error("emp_id claim not found in JWT payload");
+// Extracts a usable email for the current user from the JWT payload.
+// Tries common keys in order: email, preferred_username, upn, sub.
+// If a claim looks like an email (contains '@'), it's accepted.
+public isolated function extractEmail(jwt:Payload payload) returns string|error {
+    anydata?[] candidates = [payload["email"], payload["preferred_username"], payload["upn"], payload["sub"], payload["emp_id"]];
+    foreach var c in candidates {
+        if c is string {
+            string v = c.trim();
+            if v.length() > 0 {
+                return v;
+            }
+        }
     }
-    if empClaim is string {
-        return empClaim;
-    }
-    return error("emp_id claim is not a string");
+    return error("email claim not found in JWT payload");
 }
 
 
@@ -76,6 +80,16 @@ service class JwtInterceptor {
             log:printError(errorMsg, payload);
             return <http:InternalServerError>{ body: { message: errorMsg } };
         }
+        // Extract and attach email to the request context for downstream handlers
+        string|error email = extractEmail(payload);
+        if email is error {
+            string errorMsg = "Missing 'email' in JWT claims";
+            log:printError(errorMsg, email);
+            return <http:InternalServerError>{ body: { message: errorMsg } };
+        }
+        // Store as a typed string; service code reads ctx.getWithType("email")
+        ctx.set("email", email);
+        log:printInfo("Authenticated user: " + email);
         return ctx.next();
     }
 }
