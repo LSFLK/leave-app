@@ -517,7 +517,7 @@ service http:InterceptableService / on new http:Listener(serverPort) {
         if userId is error {
             check caller->respond({
                 "status": "error",
-                "message": "User ID missing in JWT context",
+                "message": userId.toString(),
                 "error": userId.toString()
             });
             return;
