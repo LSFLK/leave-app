@@ -44,6 +44,7 @@ const LeaveList: React.FC<LeaveListProps> = ({ showSnackbar, isAdmin = false }) 
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<Record<string, boolean>>({});
 
   // Filtered leaves
   const filteredLeaves = leaves.filter(leave => {
@@ -65,6 +66,29 @@ const LeaveList: React.FC<LeaveListProps> = ({ showSnackbar, isAdmin = false }) 
     }
   });
 
+  async function handleDelete(leaveId: string) {
+    if (!window.confirm('Delete this leave request? This cannot be undone.')) return;
+    setDeleting(d => ({ ...d, [leaveId]: true }));
+    try {
+      const token = jwtToken;
+      if (!token) throw new Error('Missing auth token');
+      const res = await apiFetch(`/api/leaves/${encodeURIComponent(leaveId)}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await parseJsonSafe<any>(res);
+      if (data.status === 'success') {
+        setLeaves(ls => ls.filter(l => l.leave_id !== leaveId));
+        showSnackbar && showSnackbar('Leave deleted', 'success');
+      } else {
+        showSnackbar && showSnackbar(data.message || 'Delete failed', 'error');
+      }
+    } catch (e: any) {
+      showSnackbar && showSnackbar(e?.message || 'Network error', 'error');
+    }
+    setDeleting(d => ({ ...d, [leaveId]: false }));
+  }
+
 
   // Helper to decode JWT and extract email
   function getEmailFromJWT(token: string): string | null {
@@ -83,10 +107,11 @@ const LeaveList: React.FC<LeaveListProps> = ({ showSnackbar, isAdmin = false }) 
     let mounted = true;
     (async () => {
       try {
-        const t = await getToken();
-        if (!mounted) return;
-        setJwtToken(t);
-        setUserEmail(getEmailFromJWT(t));
+  const t = await getToken();
+  if (!mounted) return;
+  const safeToken = t || '';
+  setJwtToken(safeToken);
+  setUserEmail(safeToken ? getEmailFromJWT(safeToken) : null);
       } catch (e) {
         if (mounted) {
           setError('JWT token unavailable');
@@ -147,8 +172,8 @@ const LeaveList: React.FC<LeaveListProps> = ({ showSnackbar, isAdmin = false }) 
   }, [userEmail, jwtToken]);
 
   return (
-    <div style={{ padding: 40, width: '100%', alignItems: 'center', paddingRight: 10 }}>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+    <div className="leave-list-root" style={{ padding: 16, width: '100%', alignItems: 'center', boxSizing: 'border-box' }}>
+      <div className="allowances-row" style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <label htmlFor="allow_annual" style={{ fontSize: 12, opacity: 0.8 }}>Annual allowance</label>
           <input
@@ -186,8 +211,8 @@ const LeaveList: React.FC<LeaveListProps> = ({ showSnackbar, isAdmin = false }) 
           {!isAdmin && <small style={{ opacity: 0.7 }}></small>}
         </div>
       </div>
-      <h2>My Leaves</h2>
-      <div style={{ margin: '16px 0', display: 'flex', gap: 12, alignItems: 'center' }}>
+  <h2 style={{ marginTop: 0, marginBottom: 12 }}>My Leaves</h2>
+  <div className="search-row" style={{ margin: '16px 0', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <select
           value={searchField}
           onChange={e => setSearchField(e.target.value)}
@@ -219,7 +244,8 @@ const LeaveList: React.FC<LeaveListProps> = ({ showSnackbar, isAdmin = false }) 
       {loading && <div>Loading leaves...</div>}
       {error && <div style={{ color: 'red', marginBottom: 12 }}>{error}</div>}
       {filteredLeaves.length > 0 ? (
-        <table style={{ width: '95%', borderCollapse: 'collapse' }}>
+        <div style={{ width: '100%', overflowX: 'auto' }}>
+        <table style={{ width: '100%', minWidth: 720, borderCollapse: 'collapse' }}>
           <thead>
             <tr>
               <th style={{ padding: '12px 8px', borderBottom: '1px solid rgba(0,0,0,0.2)', textAlign: 'left' }}>Type</th>
@@ -227,6 +253,7 @@ const LeaveList: React.FC<LeaveListProps> = ({ showSnackbar, isAdmin = false }) 
               <th style={{ padding: '12px 8px', borderBottom: '1px solid rgba(0,0,0,0.2)', textAlign: 'left' }}>Start Date</th>
               <th style={{ padding: '12px 8px', borderBottom: '1px solid rgba(0,0,0,0.2)', textAlign: 'left' }}>End Date</th>
               <th style={{ padding: '12px 8px', borderBottom: '1px solid rgba(0,0,0,0.2)', textAlign: 'left' }}>Reason</th>
+              <th style={{ padding: '12px 8px', borderBottom: '1px solid rgba(0,0,0,0.2)', textAlign: 'left' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -236,17 +263,62 @@ const LeaveList: React.FC<LeaveListProps> = ({ showSnackbar, isAdmin = false }) 
                 <td style={{ padding: '10px 8px', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>{leave.status}</td>
                 <td style={{ padding: '10px 8px', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>{leave.start_date}</td>
                 <td style={{ padding: '10px 8px', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>{leave.end_date}</td>
-                <td style={{ padding: '10px 8px', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>{leave.reason}</td>
+                <td className="reason-cell" style={{ padding: '10px 8px', borderBottom: '1px solid rgba(0,0,0,0.1)', maxWidth: 320 }}>{leave.reason}</td>
+                <td style={{ padding: '10px 8px', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
+                  <button
+                    onClick={() => handleDelete(leave.leave_id)}
+                    disabled={deleting[leave.leave_id]}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: 6,
+                      background: deleting[leave.leave_id] ? '#999' : '#d32f2f',
+                      color: '#fff',
+                      border: 'none',
+                      cursor: deleting[leave.leave_id] ? 'not-allowed' : 'pointer',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      letterSpacing: 0.4,
+                    }}
+                  >
+                    {deleting[leave.leave_id] ? 'Deleting...' : 'Delete'}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
       ) : (
         !loading && <div>No leaves found.</div>
       )}
       <style>{`
   input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(1) brightness(0.2);
+  }
+  /* Responsive layout */
+  @media (max-width: 900px) {
+    .allowances-row input { width: 120px; }
+  }
+  @media (max-width: 700px) {
+    .leave-list-root { padding: 14px; }
+    .allowances-row { gap: 10px; }
+    .search-row { gap: 10px; }
+    table { font-size: 13px; }
+  }
+  @media (max-width: 600px) {
+    .leave-list-root { padding: 12px; }
+    .allowances-row > div { flex: 1 1 100%; max-width: 100%; }
+    .allowances-row input { width: 100% !important; }
+    .search-row { flex-direction: column; align-items: stretch; }
+    .search-row select, .search-row input { width: 100%; }
+    table { min-width: 600px; }
+    th, td { padding: 8px 6px !important; }
+    .reason-cell { max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  }
+  @media (max-width: 420px) {
+    h2 { font-size: 1.15rem; }
+    table { font-size: 12px; }
+    .reason-cell { max-width: 140px; }
   }
 `}</style>
     </div>
