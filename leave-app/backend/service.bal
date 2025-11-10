@@ -154,7 +154,7 @@ service http:InterceptableService / on new http:Listener(serverPort) {
     // GET /api/admin/leaves/pending - Admin views all pending leaves
     resource function get api/admin/leaves/pending(http:Caller caller, http:Request req, http:RequestContext ctx) returns error? {
         // Role guard: only admins can access
-        string|error userEmail = ctx.getWithType("emp_id");
+        string|error userEmail = ctx.getWithType("email");
         
         if userEmail is error {
             check caller->respond({"status":"error","message":"Unauthorized: missing user","code":403});
@@ -190,7 +190,7 @@ service http:InterceptableService / on new http:Listener(serverPort) {
     // GET /api/admin/leaves - Admin org-wide leaves with optional filters
     resource function get api/admin/leaves(http:Caller caller, http:Request req, http:RequestContext ctx) returns error? {
         // Role guard: only admins can access
-        string|error userEmail = ctx.getWithType("emp_id");
+        string|error userEmail = ctx.getWithType("email");
         //string|error userEmail = "sarah@gov.com";
         if userEmail is error {
             check caller->respond({"status":"error","message":"Unauthorized: missing user","code":403});
@@ -252,7 +252,7 @@ service http:InterceptableService / on new http:Listener(serverPort) {
         // POST /api/admin/leaves/approve - Admin approves a leave request
         resource function post api/admin/leaves/approve(http:Caller caller, http:Request req, http:RequestContext ctx) returns error? {
             // Role guard
-            string|error userEmail = ctx.getWithType("emp_id");
+            string|error userEmail = ctx.getWithType("email");
             if userEmail is error {
                 return caller->respond({"status":"error","message":"Unauthorized: missing user","code":403});
             }
@@ -293,7 +293,7 @@ service http:InterceptableService / on new http:Listener(serverPort) {
         // POST /api/admin/leaves/reject - Admin rejects a leave request
         resource function post api/admin/leaves/reject(http:Caller caller, http:Request req, http:RequestContext ctx) returns error? {
             // Role guard
-            string|error userEmail = ctx.getWithType("emp_id");
+            string|error userEmail = ctx.getWithType("email");
             if userEmail is error {
                 return caller->respond({"status":"error","message":"Unauthorized: missing user","code":403});
             }
@@ -443,7 +443,7 @@ service http:InterceptableService / on new http:Listener(serverPort) {
     
     // GET /api/users/me - return current user's role from users table
     resource function get api/users/me(http:Caller caller, http:Request req, http:RequestContext ctx) returns error? {
-        string|error userEmail = ctx.getWithType("emp_id");
+        string|error userEmail = ctx.getWithType("email");
         if userEmail is error {
             check caller->respond({"status":"error","message":"Unauthorized","code":401});
             return;
@@ -513,7 +513,7 @@ service http:InterceptableService / on new http:Listener(serverPort) {
         // GET /api/leaves - Get all leaves for logged-in user (ignore status)
     resource function get api/leaves(http:Caller caller, http:Request req, http:RequestContext ctx) returns error? {
         // Get userId from JWT context
-        string|error userId = ctx.getWithType("emp_id");
+        string|error userId = ctx.getWithType("email");
         if userId is error {
             check caller->respond({
                 "status": "error",
