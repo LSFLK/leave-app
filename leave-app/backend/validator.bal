@@ -12,7 +12,7 @@
 import ballerina/http;
 import ballerina/jwt;
 import ballerina/log;
-import ballerina/jwt;
+
 
 // Extracts the emp_id claim from JWT payload
 public isolated function extractEmployeeId(jwt:Payload payload) returns string|error {
