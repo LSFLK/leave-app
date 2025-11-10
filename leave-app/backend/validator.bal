@@ -34,6 +34,12 @@ service class JwtInterceptor {
     isolated resource function default [string... path](http:RequestContext ctx, http:Request req)
         returns http:NextService|http:InternalServerError|http:Response|error? {
         string fullPath = req.rawPath;
+        // Allow CORS preflight requests without auth validation
+        if req.method().equalsIgnoreCase("OPTIONS") {
+            http:Response preflightRes = new;
+            preflightRes.statusCode = 204; // No Content for preflight
+            return preflightRes;
+        }
         if fullPath.startsWith("/health") {
             log:printInfo("Public endpoint accessed: " + fullPath);
             return ctx.next();
@@ -65,17 +71,25 @@ service class JwtInterceptor {
         }
 
         if idToken is error || idToken.trim().length() == 0 {
-            string errorMsg = "Missing invoker info header!";
+            string errorMsg = "Missing Authorization/JWT header";
             log:printError(errorMsg, idToken is error ? idToken : ());
-            return <http:InternalServerError>{ body: { message: errorMsg } };
+            http:Response res = new;
+            res.statusCode = 401;
+            check res.setJsonPayload({ message: errorMsg });
+            return res;
         }
 
         jwt:Payload|jwt:Error payload = jwt:validate(idToken, validatorConfig);
         if payload is jwt:Error {
-            string errorMsg = "JWT validation failed! Unauthorized !!!";
+            // More granular logging: include underlying validation failure reason
+            string errorMsg = "JWT validation failed: " + payload.message();
             log:printError(errorMsg, payload);
-            return <http:InternalServerError>{ body: { message: errorMsg } };
+            http:Response res = new;
+            res.statusCode = 401;
+            check res.setJsonPayload({ message: errorMsg });
+            return res;
         }
+        // TODO: (Optional) attach emp_id to context for downstream usage if needed.
         return ctx.next();
     }
 }
